@@ -3,794 +3,183 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ПОЕЗД 2+5: ДАНЯ ГЛАДИН // VHS INDIE HORROR</title>
+  <title>Поезд 2+5 // Часть 1</title>
   <style>
-    :root {
-      --blood: #8a0303;
-      --blood-bright: #e60000;
-      --bg: #050608;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      background: var(--bg);
-      color: #ccc;
-      font-family: "Courier New", Courier, monospace;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      overflow: hidden;
-      touch-action: manipulation;
-    }
-
-    #gameBox {
-      position: relative;
-      width: 100vw;
-      max-width: 440px;
-      height: 100vh;
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    #viewport {
-      position: relative;
-      width: 100%;
-      flex: 1;
-      background: #020202;
-      overflow: hidden;
-    }
-
-    #canvas3d {
-      width: 100%;
-      height: 100%;
-      display: block;
-      image-rendering: pixelated;
-    }
-
-    .vhs-scanlines {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%), 
-                  linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
-      background-size: 100% 3px, 4px 100%;
-      pointer-events: none;
-      z-index: 20;
-    }
-
-    .vhs-glitch {
-      position: absolute;
-      inset: 0;
-      box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.9);
-      pointer-events: none;
-      z-index: 21;
-    }
-
-    .blood-splatter {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 80% 20%, rgba(138, 3, 3, 0.35) 0%, transparent 40%),
-                  radial-gradient(circle at 10% 85%, rgba(138, 3, 3, 0.45) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 22;
-      opacity: 0.2;
-      transition: opacity 0.3s;
-    }
-
-    .hud {
-      position: absolute;
-      top: 10px;
-      left: 12px;
-      right: 12px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 0 4px #000;
-      z-index: 30;
-      pointer-events: none;
-    }
-
-    .rec-badge {
-      color: var(--blood-bright);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      animation: blink 1s infinite;
-    }
-
-    @keyframes blink {
-      50% { opacity: 0.2; }
-    }
-
-    .status-bars {
-      position: absolute;
-      bottom: 12px;
-      left: 12px;
-      right: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      z-index: 30;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .bar-pill {
-      background: rgba(10, 10, 15, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 4px 8px;
-      border-radius: 6px;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    #subtitleBox {
-      position: absolute;
-      top: 45px;
-      left: 16px;
-      right: 16px;
-      background: rgba(0, 0, 0, 0.8);
-      border-left: 3px solid var(--blood-bright);
-      padding: 8px 12px;
-      font-size: 12px;
-      color: #ffcccc;
-      z-index: 35;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      line-height: 1.35;
-      pointer-events: none;
-    }
-
-    #flashOverlay {
-      position: absolute;
-      inset: 0;
-      background: #fff;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 40;
-    }
-
-    .controls-panel {
-      height: 155px;
-      background: #090a0f;
-      border-top: 2px solid #1c202a;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 16px;
-      z-index: 50;
-    }
-
-    .dpad-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(2, 44px);
-      gap: 6px;
-    }
-
-    .btn-touch {
-      background: #141620;
-      border: 1px solid #2e3448;
-      border-radius: 8px;
-      color: #9aa4be;
-      font-size: 18px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
-    }
-
-    .btn-touch:active, .btn-touch.active {
-      background: #282e42;
-      color: #fff;
-      transform: scale(0.95);
-    }
-
-    .action-group {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .btn-action {
-      width: 58px;
-      height: 58px;
-      border-radius: 14px;
-      background: #181922;
-      border: 1px solid #3a3e55;
-      color: #eee;
-      font-size: 11px;
-      font-weight: bold;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-    }
-
-    .btn-shoot {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #a10000 0%, #4a0000 100%);
-      border: 2px solid #ff3b3b;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 900;
-      box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
-    }
-
-    .btn-shoot:active {
-      transform: scale(0.92);
-      background: #ff1a1a;
-    }
-
-    .screen-overlay {
-      position: absolute;
-      inset: 0;
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-      text-align: center;
-      z-index: 100;
-    }
-
-    .screen-title {
-      font-size: 22px;
-      color: var(--blood-bright);
-      margin-bottom: 12px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      text-shadow: 0 0 10px rgba(230, 0, 0, 0.8);
-    }
-
-    .screen-desc {
-      font-size: 13px;
-      line-height: 1.5;
-      color: #bbb;
-      margin-bottom: 24px;
-    }
-
-    .start-btn {
-      background: #180000;
-      color: #ff3333;
-      border: 1px solid #ff3333;
-      padding: 14px 28px;
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
-    }
-
-    .start-btn:active {
-      background: #ff3333;
-      color: #000;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+    body { background: #000; color: #ccc; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 20; font-size: 11px; font-weight: 700; background: rgba(10,12,20,0.85); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+    #msg { position: absolute; top: 52px; left: 10px; right: 10px; background: rgba(120,0,0,0.85); color: #fff; padding: 8px; font-size: 12px; border-radius: 8px; z-index: 25; text-align: center; display: none; }
+    canvas { flex: 1; width: 100%; display: block; background: #0a0c14; }
+    #controls { height: 130px; background: #080a12; border-top: 1px solid #1a2035; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
+    .btn { width: 56px; height: 56px; border-radius: 16px; background: #161b2c; border: 1px solid #2d3758; color: #fff; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .btn:active { background: #2f395c; transform: scale(0.92); }
+    .btn-act { width: 56px; height: 56px; border-radius: 16px; background: #1a1e2f; border: 1px solid #3d476e; color: #fff; font-size: 11px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .btn-shoot { width: 64px; height: 64px; border-radius: 50%; background: #b30000; border: 2px solid #ff4d4d; color: #fff; font-size: 12px; font-weight: 900; }
   </style>
 </head>
 <body>
 
-<div id="gameBox">
-  <div id="viewport">
-    <canvas id="canvas3d"></canvas>
-    
-    <div class="vhs-scanlines"></div>
-    <div class="vhs-glitch"></div>
-    <div class="blood-splatter" id="bloodSplatter"></div>
-    <div id="flashOverlay"></div>
+<div id="hud">
+  <span style="color:#ff3333;">● REC ВАГОН 2+5</span>
+  <span style="color:#ff6688;">♥ HP: <b id="hpVal">100</b></span>
+  <span style="color:#f6c445;">🔫 ПМ: <b id="ammoVal">8</b></span>
+</div>
+<div id="msg"></div>
 
-    <div class="hud">
-      <div class="rec-badge">● REC 03:26:04</div>
-      <div style="color: #8899aa;">ПОЕЗД 2+5 // ПЕРЕГОН ДАНИЛОВ</div>
-    </div>
+<canvas id="c"></canvas>
 
-    <div id="subtitleBox"></div>
-
-    <div class="status-bars">
-      <div class="bar-pill" style="color: #ff4444;">
-        <span>♥ HP:</span> <span id="hpVal">150</span>
-      </div>
-      <div class="bar-pill" style="color: #eedd66;">
-        <span>🔦 СВЕТ:</span> <span id="lightVal">100%</span>
-      </div>
-      <div class="bar-pill" style="color: #66ccff;">
-        <span>🔫 ПМ:</span> <span id="ammoVal">12</span>
-      </div>
-    </div>
-
-    <div class="screen-overlay" id="startScreen">
-      <div class="screen-title">СМЕНА В ДАНИЛОВЕ</div>
-      <div class="screen-desc">
-        Поезд 2+5 встал посреди леса.<br><br>
-        По вагонам бродят тени, похожие на Даregistration Гладина. Они ищут тебя.<br><br>
-        Найди ключ в служебном купе проводницы Галины (зелёные двери) и открой проход к локомотиву!
-      </div>
-      <button class="start-btn" onclick="startGame()">ВОЙТИ В ВАГОН</button>
-    </div>
-
-    <div class="screen-overlay" id="endScreen" style="display: none;">
-      <div class="screen-title" id="endTitle">ВЫ ЖИВЫ</div>
-      <div class="screen-desc" id="endDesc"></div>
-      <button class="start-btn" onclick="location.reload()">ПОВТОРИТЬ</button>
-    </div>
+<div id="controls">
+  <div style="display:flex; gap:12px;">
+    <button class="btn" id="bL">◀</button>
+    <button class="btn" id="bR">▶</button>
   </div>
-
-  <div class="controls-panel">
-    <div class="dpad-grid">
-      <div></div>
-      <button class="btn-touch" id="btnFwd">▲</button>
-      <div></div>
-      <button class="btn-touch" id="btnTurnL">◀</button>
-      <button class="btn-touch" id="btnBack">▼</button>
-      <button class="btn-touch" id="btnTurnR">▶</button>
-    </div>
-
-    <div class="action-group">
-      <button class="btn-action" id="btnLight">
-        <span>🔦</span>
-        <span>СВЕТ</span>
-      </button>
-      <button class="btn-action" id="btnAction">
-        <span>✋</span>
-        <span>ОБЫСК</span>
-      </button>
-      <button class="btn-shoot" id="btnShoot">
-        ВЫСТРЕЛ
-      </button>
-    </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <button class="btn-act" id="bJ"><span>▲</span><span>ПРЫЖОК</span></button>
+    <button class="btn-act" id="bE" style="color:#f6c445;"><span>🚪</span><span>ВЫХОД</span></button>
+    <button class="btn-shoot" id="bS">ОГОНЬ</button>
   </div>
 </div>
 
 <script>
-  const canvas = document.getElementById('canvas3d');
+  const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-
-  function resize() {
-    canvas.width = 320;
-    canvas.height = 240;
-  }
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 130; }
+  window.addEventListener('resize', resize);
   resize();
 
-  // Расширенная карта: 10 клеток в ширину, много свободного места в проходах
-  // 1 = стена вагона, 2 = кровь на стене, 3 = дверь купе/выхода, 4 = окно наружу
-  const mapW = 10;
-  const mapH = 20;
-  const map = [
-    1,1,1,1,1,1,1,1,1,1,
-    1,0,0,0,0,0,0,0,3,1, // старт / просторный тамбур
-    1,0,0,0,0,0,0,0,0,1,
-    1,0,0,1,0,0,1,0,0,1,
-    1,0,0,0,0,0,0,0,2,1,
-    1,0,0,0,0,0,0,0,0,1,
-    1,4,0,1,0,0,1,0,4,1,
-    1,0,0,0,0,0,0,0,0,1,
-    1,2,0,0,0,0,0,0,2,1,
-    1,0,0,1,0,0,1,0,0,1,
-    1,0,0,0,0,0,0,0,3,1, // купе проводницы с ключом (справа y=10, x=8)
-    1,0,0,0,0,0,0,0,0,1,
-    1,4,0,1,0,0,1,0,4,1,
-    1,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,2,1,
-    1,2,0,1,0,0,1,0,0,1,
-    1,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,0,1,
-    1,0,0,0,0,0,0,0,3,1, // спасительный выход к локомотиву (y=18, x=8)
-    1,1,1,1,1,1,1,1,1,1
+  const floorY = canvas.height - 40;
+  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, hp: 100, ammo: 8, facing: 1, grounded: false };
+  const keys = { l: false, r: false };
+
+  const enemies = [
+    { x: 300, y: floorY - 50, w: 24, h: 50, hp: 2, dir: -1, minX: 200, maxX: 450, alive: true, name: "Даня Гладин" },
+    { x: 620, y: floorY - 50, w: 24, h: 50, hp: 2, dir: -1, minX: 520, maxX: 750, alive: true, name: "Даня Гладин" }
   ];
 
-  const player = {
-    x: 4.5,
-    y: 1.5,
-    rot: Math.PI / 2,
-    fov: Math.PI / 3,
-    hp: 150,
-    ammo: 12,
-    flashlight: true,
-    battery: 100,
-    hasKey: false
-  };
-
-  // Враги: Даня Гладин (замедлены, меньший урон, легко обойти в широком зале)
-  let monsters = [
-    { name: "Даня Гладин", x: 4.5, y: 5.5, hp: 2, alive: true, aggro: false, speed: 0.018 },
-    { name: "Даня Гладин (клон)", x: 5.0, y: 13.5, hp: 2, alive: true, aggro: false, speed: 0.02 },
-    { name: "Даня Гладин (босс)", x: 4.5, y: 17.0, hp: 3, alive: true, aggro: false, speed: 0.022 }
-  ];
-
-  let actx = null;
-  let droneOsc = null;
-
-  function initAudio() {
-    if (actx) return;
-    actx = new (window.AudioContext || window.webkitAudioContext)();
-
-    droneOsc = actx.createOscillator();
-    const droneGain = actx.createGain();
-    const droneFilter = actx.createBiquadFilter();
-
-    droneOsc.type = 'sawtooth';
-    droneOsc.frequency.setValueAtTime(45, actx.currentTime);
-    droneFilter.type = 'lowpass';
-    droneFilter.frequency.setValueAtTime(140, actx.currentTime);
-    droneGain.gain.setValueAtTime(0.18, actx.currentTime);
-
-    droneOsc.connect(droneFilter);
-    droneFilter.connect(droneGain);
-    droneGain.connect(actx.destination);
-    droneOsc.start();
+  function show(txt) {
+    const m = document.getElementById('msg');
+    m.innerText = txt; m.style.display = 'block';
+    setTimeout(() => m.style.display = 'none', 2500);
   }
-
-  function playGunshot() {
-    if (!actx) return;
-    const bufSize = actx.sampleRate * 0.35;
-    const buf = actx.createBuffer(1, bufSize, actx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.06));
-    }
-    const noise = actx.createBufferSource();
-    noise.buffer = buf;
-
-    const filter = actx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1600, actx.currentTime);
-
-    const gain = actx.createGain();
-    gain.gain.setValueAtTime(0.8, actx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(actx.destination);
-    noise.start();
-  }
-
-  function playMonsterScream() {
-    if (!actx) return;
-    const osc = actx.createOscillator();
-    const g = actx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(260, actx.currentTime);
-    osc.frequency.linearRampToValueAtTime(500, actx.currentTime + 0.2);
-    osc.frequency.exponentialRampToValueAtTime(90, actx.currentTime + 0.5);
-
-    g.gain.setValueAtTime(0.3, actx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.5);
-
-    osc.connect(g);
-    g.connect(actx.destination);
-    osc.start();
-    osc.stop(actx.currentTime + 0.55);
-  }
-
-  function showSubtitle(txt, time = 2800) {
-    const el = document.getElementById('subtitleBox');
-    el.innerText = txt;
-    el.style.opacity = 1;
-    clearTimeout(el.subTimeout);
-    el.subTimeout = setTimeout(() => { el.style.opacity = 0; }, time);
-  }
+  show("Поезд встал. Даня Гладин рыщет по коридору. Доберись до выхода из вагона!");
 
   function shoot() {
-    if (player.ammo <= 0) {
-      showSubtitle("ЩЁЛК!.. Патроны кончились!");
-      return;
-    }
-    player.ammo--;
-    document.getElementById('ammoVal').innerText = player.ammo;
-
-    playGunshot();
-    const flash = document.getElementById('flashOverlay');
-    flash.style.opacity = 0.85;
-    setTimeout(() => { flash.style.opacity = 0; }, 50);
-
-    let hit = false;
-    for (const m of monsters) {
-      if (!m.alive) continue;
-      const dx = m.x - player.x;
-      const dy = m.y - player.y;
-      const angle = Math.atan2(dy, dx);
-      let diff = angle - player.rot;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-
-      const dist = Math.hypot(dx, dy);
-      if (Math.abs(diff) < 0.35 && dist < 8) {
-        m.hp--;
-        m.aggro = true;
-        playMonsterScream();
-        showSubtitle(`ПОПАДАНИЕ! ${m.name} получил пулю!`);
-        hit = true;
-        if (m.hp <= 0) {
-          m.alive = false;
-          showSubtitle(`${m.name} повержен и упал на пол!`);
-        }
-        break;
+    if (p.ammo <= 0) { show("Патроны кончились!"); return; }
+    p.ammo--;
+    document.getElementById('ammoVal').innerText = p.ammo;
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      const ahead = (p.facing > 0 && e.x > p.x) || (p.facing < 0 && e.x < p.x);
+      if (ahead && Math.abs(e.x - p.x) < 260) {
+        e.hp--;
+        show("Попадание в Даню Гладина!");
+        if (e.hp <= 0) { e.alive = false; show("Даня Гладин повержен!"); }
+        return;
       }
     }
-    if (!hit) {
-      showSubtitle("Мимо! Эхо выстрела разнеслось по широкому вагону.");
-    }
+    show("Выстрел в темноту вагона!");
   }
 
   function interact() {
-    const checkX = Math.floor(player.x + Math.cos(player.rot) * 1.1);
-    const checkY = Math.floor(player.y + Math.sin(player.rot) * 1.1);
-    const tile = map[checkY * mapW + checkX];
-
-    if (tile === 3) {
-      if (checkY === 10) {
-        if (!player.hasKey) {
-          player.hasKey = true;
-          player.ammo += 6;
-          document.getElementById('ammoVal').innerText = player.ammo;
-          showSubtitle("Найдена связка проводницы Галины! Получен КЛЮЧ ОТ ЛОКОМОТИВА и +6 патронов.");
-        } else {
-          showSubtitle("Купе проводницы уже обыскано.");
-        }
-      } else if (checkY === 18) {
-        if (player.hasKey) {
-          triggerGameEnd(true);
-        } else {
-          showSubtitle("Дверь заперта! Найди ключ в купе проводницы на середине вагона.");
-        }
-      } else {
-        showSubtitle("Тамбур пуст.");
-      }
-    } else if (tile === 2) {
-      showSubtitle("Надпись кровью на стене: «Даня Гладин бродит во тьме...»");
+    // Дверь в конце вагона (x = 840)
+    if (p.x >= 780) {
+      window.location.href = "vologda.html";
     } else {
-      showSubtitle("Тут чисто, иди дальше.");
+      show("Дверь выхода в конце вагона справа!");
     }
   }
-
-  const keys = { fwd: false, back: false, left: false, right: false };
-
-  function bindBtn(id, onDown, onUp) {
-    const el = document.getElementById(id);
-    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); el.classList.add('active'); });
-    el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); el.classList.remove('active'); });
-    el.addEventListener('mousedown', () => { onDown(); el.classList.add('active'); });
-    el.addEventListener('mouseup', () => { onUp(); el.classList.remove('active'); });
-  }
-
-  bindBtn('btnFwd', () => keys.fwd = true, () => keys.fwd = false);
-  bindBtn('btnBack', () => keys.back = true, () => keys.back = false);
-  bindBtn('btnTurnL', () => keys.left = true, () => keys.left = false);
-  bindBtn('btnTurnR', () => keys.right = true, () => keys.right = false);
-
-  document.getElementById('btnShoot').onclick = shoot;
-  document.getElementById('btnAction').onclick = interact;
-  document.getElementById('btnLight').onclick = () => {
-    player.flashlight = !player.flashlight;
-    showSubtitle(player.flashlight ? "Фонарик включен." : "Фонарик выключен.");
-  };
-
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.fwd = true;
-    if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.back = true;
-    if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
-    if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
-    if (e.code === 'Space') shoot();
-    if (e.code === 'KeyE') interact();
-    if (e.code === 'KeyF') player.flashlight = !player.flashlight;
-  });
-
-  window.addEventListener('keyup', (e) => {
-    if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.fwd = false;
-    if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.back = false;
-    if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
-    if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
-  });
 
   function update() {
-    const moveSpeed = 0.055;
-    const rotSpeed = 0.045;
+    p.vx = keys.l ? -3.5 : (keys.r ? 3.5 : 0);
+    if (keys.l) p.facing = -1;
+    if (keys.r) p.facing = 1;
 
-    if (keys.left) player.rot -= rotSpeed;
-    if (keys.right) player.rot += rotSpeed;
+    p.vy += 0.5;
+    p.x += p.vx;
+    p.y += p.vy;
 
-    if (keys.fwd) {
-      const nx = player.x + Math.cos(player.rot) * moveSpeed;
-      const ny = player.y + Math.sin(player.rot) * moveSpeed;
-      if (map[Math.floor(ny) * mapW + Math.floor(nx)] === 0) {
-        player.x = nx; player.y = ny;
-      }
-    }
-    if (keys.back) {
-      const nx = player.x - Math.cos(player.rot) * moveSpeed;
-      const ny = player.y - Math.sin(player.rot) * moveSpeed;
-      if (map[Math.floor(ny) * mapW + Math.floor(nx)] === 0) {
-        player.x = nx; player.y = ny;
-      }
-    }
+    if (p.y >= floorY - p.h) { p.y = floorY - p.h; p.vy = 0; p.grounded = true; }
+    if (p.x < 10) p.x = 10;
 
-    if (player.flashlight && player.battery > 0) {
-      player.battery -= 0.006;
-      document.getElementById('lightVal').innerText = `${Math.ceil(player.battery)}%`;
-      if (player.battery <= 0) player.flashlight = false;
-    }
-
-    for (const m of monsters) {
-      if (!m.alive) continue;
-      const dist = Math.hypot(m.x - player.x, m.y - player.y);
-
-      if (dist < 6.5) {
-        if (!m.aggro) {
-          m.aggro = true;
-          playMonsterScream();
-          showSubtitle(`Впереди показался ${m.name}! Стреляй!`);
-        }
-        const angle = Math.atan2(player.y - m.y, player.x - m.x);
-        const mx = m.x + Math.cos(angle) * m.speed;
-        const my = m.y + Math.sin(angle) * m.speed;
-        if (map[Math.floor(my) * mapW + Math.floor(mx)] === 0) {
-          m.x = mx; m.y = my;
-        }
-
-        if (dist < 0.75) {
-          player.hp -= 0.35; // сниженный урон
-          document.getElementById('hpVal').innerText = Math.max(0, Math.ceil(player.hp));
-          document.getElementById('bloodSplatter').style.opacity = (1 - player.hp / 150);
-          if (player.hp <= 0) triggerGameEnd(false);
-        }
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      e.x += e.dir * 1.3;
+      if (e.x <= e.minX || e.x >= e.maxX) e.dir *= -1;
+      if (Math.abs(p.x - e.x) < 25 && Math.abs(p.y - e.y) < 35) {
+        p.hp -= 0.6;
+        document.getElementById('hpVal').innerText = Math.max(0, Math.ceil(p.hp));
+        if (p.hp <= 0) { alert("Вас растерзал Даня Гладин!"); location.reload(); }
       }
     }
   }
 
-  function renderRaycasting() {
-    const numRays = canvas.width;
-    const halfFov = player.fov / 2;
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const camX = Math.max(0, p.x - canvas.width * 0.35);
 
-    ctx.fillStyle = '#0a0505';
-    ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
-    ctx.fillStyle = '#140c0c';
-    ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+    // Пол вагона и ковер
+    ctx.fillStyle = '#801824';
+    ctx.fillRect(0 - camX, floorY, 1000, 40);
+    ctx.fillStyle = '#f6c445';
+    ctx.fillRect(0 - camX, floorY, 1000, 3);
 
-    const zBuffer = [];
-
-    for (let r = 0; r < numRays; r++) {
-      const rayAngle = player.rot - halfFov + (r / numRays) * player.fov;
-      let dist = 0;
-      let hit = 0;
-      const sin = Math.sin(rayAngle);
-      const cos = Math.cos(rayAngle);
-
-      while (dist < 18) {
-        dist += 0.04;
-        const checkX = Math.floor(player.x + cos * dist);
-        const checkY = Math.floor(player.y + sin * dist);
-
-        if (checkX < 0 || checkX >= mapW || checkY < 0 || checkY >= mapH) {
-          hit = 1; break;
-        }
-        const tile = map[checkY * mapW + checkX];
-        if (tile > 0) { hit = tile; break; }
-      }
-
-      const correctedDist = dist * Math.cos(rayAngle - player.rot);
-      zBuffer[r] = correctedDist;
-
-      const wallHeight = Math.min(canvas.height * 1.5, (canvas.height / correctedDist) * 1.2);
-      const wallTop = (canvas.height - wallHeight) / 2;
-
-      let lightFactor = player.flashlight ? Math.max(0.1, 1 - (correctedDist / 10.5)) : Math.max(0.05, 0.35 - (correctedDist / 4));
-
-      let rCol = 32, gCol = 32, bCol = 38;
-      if (hit === 2) { rCol = 145; gCol = 15; bCol = 15; }
-      if (hit === 3) { rCol = 55; gCol = 90; bCol = 50; } // дверь купе
-      if (hit === 4) { rCol = 20; gCol = 35; bCol = 60; }
-
-      ctx.fillStyle = `rgb(${rCol * lightFactor}, ${gCol * lightFactor}, ${bCol * lightFactor})`;
-      ctx.fillRect(r, wallTop, 1, wallHeight);
+    // Полки плацкарта
+    ctx.fillStyle = '#1c2847';
+    for (let bx = 160; bx <= 660; bx += 220) {
+      ctx.fillRect(bx - camX, floorY - 55, 100, 12);
+      ctx.fillStyle = '#f0f3fa';
+      ctx.fillRect(bx - camX, floorY - 58, 100, 3);
+      ctx.fillStyle = '#1c2847';
     }
 
-    const sortedMonsters = [...monsters]
-      .filter(m => m.alive)
-      .map(m => ({
-        ...m,
-        dist: Math.hypot(m.x - player.x, m.y - player.y),
-        angle: Math.atan2(m.y - player.y, m.x - player.x) - player.rot
-      }))
-      .sort((a, b) => b.dist - a.dist);
+    // Выходная дверь на перрон Вологды
+    ctx.fillStyle = '#05b072';
+    ctx.fillRect(840 - camX, floorY - 80, 45, 80);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText("ВЫХОД В ВОЛОГДУ", 800 - camX, floorY - 90);
 
-    for (const m of sortedMonsters) {
-      let angle = m.angle;
-      while (angle < -Math.PI) angle += Math.PI * 2;
-      while (angle > Math.PI) angle -= Math.PI * 2;
-
-      if (Math.abs(angle) < player.fov) {
-        const screenX = (canvas.width / 2) + Math.tan(angle) * (canvas.width / (2 * Math.tan(halfFov)));
-        const spriteSize = Math.min(canvas.height * 1.8, (canvas.height / m.dist) * 1.1);
-        const topY = (canvas.height - spriteSize) / 2;
-
-        if (m.dist > 0.3 && screenX > -60 && screenX < canvas.width + 60 && m.dist < zBuffer[Math.floor(screenX)]) {
-          let light = player.flashlight ? Math.max(0.2, 1 - m.dist / 9) : 0.2;
-
-          ctx.save();
-          ctx.translate(screenX, topY + spriteSize / 2);
-
-          // Тело монстра Дани Гладина
-          ctx.fillStyle = `rgba(${25 * light}, ${15 * light}, ${25 * light}, 0.95)`;
-          ctx.fillRect(-spriteSize * 0.22, -spriteSize * 0.45, spriteSize * 0.44, spriteSize * 0.9);
-
-          // Окровавленная пасть
-          ctx.fillStyle = `rgba(${220 * light}, 0, 0, 0.9)`;
-          ctx.fillRect(-spriteSize * 0.1, spriteSize * 0.05, spriteSize * 0.2, spriteSize * 0.25);
-
-          // Горящие зрачки
-          ctx.fillStyle = '#ff0033';
-          ctx.fillRect(-spriteSize * 0.08, -spriteSize * 0.25, spriteSize * 0.05, spriteSize * 0.05);
-          ctx.fillRect(spriteSize * 0.03, -spriteSize * 0.25, spriteSize * 0.05, spriteSize * 0.05);
-
-          // Имя над врагом
-          ctx.fillStyle = '#ff6666';
-          ctx.font = 'bold 9px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(m.name, 0, -spriteSize * 0.5);
-
-          ctx.restore();
-        }
-      }
+    // Враги Даня Гладин
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      ctx.fillStyle = '#110505';
+      ctx.fillRect(e.x - camX, e.y, e.w, e.h);
+      ctx.fillStyle = '#ff1a1a';
+      ctx.fillRect(e.x - camX + 4, e.y + 12, 4, 4);
+      ctx.fillRect(e.x - camX + 14, e.y + 12, 4, 4);
+      ctx.fillStyle = '#ff6666';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(e.name, e.x - camX - 10, e.y - 6);
     }
+
+    // ГГ в футболке PAINBOY
+    ctx.save();
+    ctx.translate(p.x - camX + p.w / 2, p.y + p.h / 2);
+    if (p.facing < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = '#111'; ctx.fillRect(-7, -25, 14, 12); // голова
+    ctx.fillStyle = '#ffd1b3'; ctx.fillRect(-6, -18, 12, 9); // лицо
+    ctx.fillStyle = '#121318'; ctx.fillRect(-11, -9, 22, 22); // футболка PAINBOY
+    ctx.fillStyle = '#fff'; ctx.fillRect(-2, 0, 4, 4); // принт мерча
+    ctx.fillStyle = '#1e2438'; ctx.fillRect(-9, 13, 7, 12); ctx.fillRect(2, 13, 7, 12); // ноги
+    ctx.fillStyle = '#444'; ctx.fillRect(8, -1, 9, 4); // пистолет
+    ctx.restore();
+
+    requestAnimationFrame(() => { update(); render(); });
   }
 
-  function gameLoop() {
-    update();
-    renderRaycasting();
-    requestAnimationFrame(gameLoop);
-  }
+  // Кнопки
+  const bL = document.getElementById('bL'), bR = document.getElementById('bR'), bJ = document.getElementById('bJ');
+  bL.ontouchstart = () => keys.l = true; bL.ontouchend = () => keys.l = false;
+  bR.ontouchstart = () => keys.r = true; bR.ontouchend = () => keys.r = false;
+  bJ.ontouchstart = () => { if (p.grounded) { p.vy = -10.5; p.grounded = false; } };
+  document.getElementById('bS').onclick = shoot;
+  document.getElementById('bE').onclick = interact;
 
-  function startGame() {
-    initAudio();
-    document.getElementById('startScreen').style.display = 'none';
-    showSubtitle("Коридоры просторные. Найди ключ в зеленом купе Галины и дойди до выхода!");
-    requestAnimationFrame(gameLoop);
-  }
+  bL.onmousedown = () => keys.l = true; bL.onmouseup = () => keys.l = false;
+  bR.onmousedown = () => keys.r = true; bR.onmouseup = () => keys.r = false;
+  bJ.onmousedown = () => { if (p.grounded) { p.vy = -10.5; p.grounded = false; } };
 
-  function triggerGameEnd(win) {
-    const end = document.getElementById('endScreen');
-    const title = document.getElementById('endTitle');
-    const desc = document.getElementById('endDesc');
-    end.style.display = 'flex';
-
-    if (win) {
-      title.innerText = "ВЫ ВЫЖИЛИ!";
-      title.style.color = "#25ff68";
-      desc.innerHTML = `
-        Вы открыли дверь и заперли за собой локомотив поезда 2+5!<br><br>
-        Даня Гладин и его тени остались выть в пустом плацкарте.<br><br>
-        <b>Поезд на полной скорости несётся в Москву!</b>
-      `;
-    } else {
-      title.innerText = "ВЫ ПОГИБЛИ";
-      title.style.color = "#e60000";
-      desc.innerHTML = `
-        Даня Гладин настиг вас в вагоне.<br><br>
-        Попробуйте держаться на расстоянии и стрелять заранее!
-      `;
-    }
-  }
+  requestAnimationFrame(() => { update(); render(); });
 </script>
-
 </body>
 </html>

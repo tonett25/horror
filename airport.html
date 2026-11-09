@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Аэропорт Вологда</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { background: #000; color: #ccc; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 20; font-size: 11px; font-weight: 700; background: rgba(10,12,20,0.85); padding: 8px 12px; border-radius: 10px; }
+    canvas { flex: 1; width: 100%; display: block; background: #060912; }
+    #controls { height: 130px; background: #080a12; border-top: 1px solid #1a2035; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
+    .btn { width: 56px; height: 56px; border-radius: 16px; background: #161b2c; border: 1px solid #2d3758; color: #fff; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+    .btn-act { width: 56px; height: 56px; border-radius: 16px; background: #1a1e2f; border: 1px solid #3d476e; color: #fff; font-size: 11px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<div id="hud">
+  <span style="color:#60a5fa;">● АЭРОПОРТ ВОЛОГДА</span>
+  <span style="color:#ff4d6d;">✈️ РЕЙС В МОСКВУ</span>
+</div>
+
+<canvas id="c"></canvas>
+
+<div id="controls">
+  <div style="display:flex; gap:12px;">
+    <button class="btn" id="bL">◀</button>
+    <button class="btn" id="bR">▶</button>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <button class="btn-act" id="bJ"><span>▲</span><span>ПРЫЖОК</span></button>
+    <button class="btn-act" id="bE" style="color:#ff4d6d;"><span>✈️</span><span>ВЗЛЁТ</span></button>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 130; }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const floorY = canvas.height - 40;
+  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, grounded: false };
+  const keys = { l: false, r: false };
+
+  function update() {
+    p.vx = keys.l ? -3.5 : (keys.r ? 3.5 : 0);
+    p.vy += 0.5; p.x += p.vx; p.y += p.vy;
+    if (p.y >= floorY - p.h) { p.y = floorY - p.h; p.vy = 0; p.grounded = true; }
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const camX = Math.max(0, p.x - canvas.width * 0.35);
+
+    // Взлётная полоса
+    ctx.fillStyle = '#27272a'; ctx.fillRect(0 - camX, floorY, 1200, 40);
+    ctx.fillStyle = '#fff';
+    for (let lx = 60; lx < 1100; lx += 90) ctx.fillRect(lx - camX, floorY + 18, 40, 4);
+
+    // Самолёт
+    ctx.fillStyle = '#3b82f6'; ctx.fillRect(800 - camX, floorY - 90, 220, 90);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace';
+    ctx.fillText("РЕЙС НА КИТАЙ-ГОРОД", 830 - camX, floorY - 50);
+
+    // Игрок
+    ctx.fillStyle = '#111'; ctx.fillRect(p.x - camX, p.y, p.w, p.h);
+
+    requestAnimationFrame(() => { update(); render(); });
+  }
+
+  document.getElementById('bL').ontouchstart = () => keys.l = true; document.getElementById('bL').ontouchend = () => keys.l = false;
+  document.getElementById('bR').ontouchstart = () => keys.r = true; document.getElementById('bR').ontouchend = () => keys.r = false;
+  document.getElementById('bJ').ontouchstart = () => { if (p.grounded) { p.vy = -10.5; p.grounded = false; } };
+  document.getElementById('bE').onclick = () => {
+    if (p.x >= 750) window.location.href = "moscow.html";
+  };
+
+  requestAnimationFrame(() => { update(); render(); });
+</script>
+</body>
+</html>
