@@ -3,23 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Москва // Китай-город</title>
+  <title>Москва // Китай-город // Бомбардировка</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { background: #000; color: #ccc; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
     #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 20; font-size: 11px; font-weight: 700; background: rgba(120,0,0,0.85); padding: 8px 12px; border-radius: 10px; color:#fff; }
-    canvas { flex: 1; width: 100%; display: block; background: #140508; }
+    canvas { flex: 1; width: 100%; display: block; background: #0f0407; }
+    #screamer { position: absolute; inset: 0; background: #880000; display: none; justify-content: center; align-items: center; z-index: 100; pointer-events: none; }
+    #screamerFace { font-size: 110px; animation: scShake 0.1s infinite; }
+    @keyframes scShake { 0% { transform: scale(1.1) rotate(-5deg); } 50% { transform: scale(1.3) rotate(5deg); } 100% { transform: scale(1.1); } }
     #controls { height: 130px; background: #080a12; border-top: 1px solid #1a2035; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
     .btn { width: 56px; height: 56px; border-radius: 16px; background: #161b2c; border: 1px solid #2d3758; color: #fff; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-    .btn-act { width: 56px; height: 56px; border-radius: 16px; background: #1a1e2f; border: 1px solid #3d476e; color: #fff; font-size: 11px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .btn-act { width: 68px; height: 68px; border-radius: 18px; background: #1a1e2f; border: 2px solid #80d8ff; color: #80d8ff; font-size: 12px; font-weight: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
 
 <div id="hud">
-  <span>🚨 КИТАЙ-ГОРОД // ТРЕВОГА</span>
-  <span>БОМБАРДИРОВКА ЧЕРЕЗ: <b id="timerVal">8</b>с</span>
+  <span>🚨 КИТАЙ-ГОРОД // БОМБАРДИРОВКА</span>
+  <span>УДАР: <b id="timerVal">10</b>с</span>
 </div>
+
+<div id="screamer"><div id="screamerFace">💀</div></div>
 
 <canvas id="c"></canvas>
 
@@ -28,10 +33,10 @@
     <button class="btn" id="bL">◀</button>
     <button class="btn" id="bR">▶</button>
   </div>
-  <div style="display:flex; gap:10px; align-items:center;">
-    <button class="btn-act" id="bJ"><span>▲</span><span>ПРЫЖОК</span></button>
-    <button class="btn-act" id="bE" style="color:#80d8ff;"><span>🗿</span><span>9MICE</span></button>
-  </div>
+  <button class="btn-act" id="bJ">
+    <span>▲</span>
+    <span>ПРЫЖОК</span>
+  </button>
 </div>
 
 <script>
@@ -42,39 +47,85 @@
   resize();
 
   const floorY = canvas.height - 40;
-  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, grounded: false };
+  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, facing: 1, grounded: false };
   const keys = { l: false, r: false };
 
-  let timeLeft = 8;
+  // Ракеты бомбардировки падающие с неба
+  const missiles = [];
+  for (let i = 0; i < 14; i++) {
+    missiles.push({
+      x: Math.random() * 1200,
+      y: -Math.random() * 600 - 50,
+      speed: Math.random() * 4 + 5,
+      len: Math.random() * 20 + 25
+    });
+  }
+
+  // Координаты статуи 9mice в мире
+  const statue = { x: 620, y: floorY - 150, w: 40, h: 60 };
+
+  let timeLeft = 10;
   const tInt = setInterval(() => {
     timeLeft--;
     document.getElementById('timerVal').innerText = timeLeft;
     if (timeLeft <= 0) {
       clearInterval(tInt);
+      // Смерть от бомбардировки и плашка ДОНАТ СКОРО..
       document.body.innerHTML = `
-        <div style="background:#4a0000; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px;">
-          <h1 style="font-size:32px; font-weight:900; margin-bottom:12px;">НИКТО НЕ ВЫИГРАЛ</h1>
-          <p style="font-size:14px; line-height:1.5;">Ядерный удар стёр Китай-город, Москву и поезд 2+5 с лица земли.<br>Все погибли.<br><br><i>(Говорят, на крышах была статуя 9mice...)</i></p>
-          <button onclick="location.reload()" style="margin-top:20px; padding:12px 24px; background:#fff; color:#000; font-weight:bold; border-radius:8px;">ЗАНОВО</button>
+        <div style="background:#300; color:#fff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:24px;">
+          <h1 style="font-size:34px; font-weight:900; color:#ff1a1a; margin-bottom:12px;">НИКТО НЕ ВЫИГРАЛ</h1>
+          <p style="font-size:15px; line-height:1.6; max-width:380px;">Бомбардировка сожгла Китай-город и всю Москву дотла.<br>Никто не спасся.<br><br><b>ДОНАТ СКОРО..</b></p>
+          <button onclick="location.href='index.html'" style="margin-top:24px; padding:12px 24px; background:#fff; color:#000; font-weight:bold; border-radius:10px;">В НАЧАЛО</button>
         </div>
       `;
     }
   }, 1000);
 
-  function update() {
-    p.vx = keys.l ? -3.5 : (keys.r ? 3.5 : 0);
-    p.vy += 0.5; p.x += p.vx; p.y += p.vy;
+  // Нажатие прямо пальцем по холсту на статую 9mice
+  canvas.addEventListener('pointerdown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const tapX = e.clientX - rect.left + Math.max(0, p.x - canvas.width * 0.35);
+    const tapY = e.clientY - rect.top;
 
-    // Платформы крыш для прыжка к статуе 9mice
+    if (tapX >= statue.x - 20 && tapX <= statue.x + statue.w + 20 &&
+        tapY >= statue.y - 20 && tapY <= statue.y + statue.h + 20) {
+      // Игрок нажал на статую!
+      clearInterval(tInt);
+      window.location.href = "moon.html";
+    }
+  });
+
+  function update() {
+    p.vx = keys.l ? -3.8 : (keys.r ? 3.8 : 0);
+    if (keys.l) p.facing = -1;
+    if (keys.r) p.facing = 1;
+
+    p.vy += 0.52;
+    p.x += p.vx;
+    p.y += p.vy;
+
     p.grounded = false;
     if (p.y >= floorY - p.h) { p.y = floorY - p.h; p.vy = 0; p.grounded = true; }
-    // Крыша 1
-    if (p.x > 380 && p.x < 520 && p.y + p.h >= floorY - 50 && p.y + p.h <= floorY - 35 && p.vy >= 0) {
-      p.y = floorY - 50 - p.h; p.vy = 0; p.grounded = true;
+
+    // Крыша со статуей
+    if (p.x > 540 && p.x < 720 && p.y + p.h >= floorY - 90 && p.y + p.h <= floorY - 75 && p.vy >= 0) {
+      p.y = floorY - 90 - p.h; p.vy = 0; p.grounded = true;
     }
-    // Крыша 2 со статуей
-    if (p.x > 560 && p.x < 720 && p.y + p.h >= floorY - 100 && p.y + p.h <= floorY - 85 && p.vy >= 0) {
-      p.y = floorY - 100 - p.h; p.vy = 0; p.grounded = true;
+
+    // Движение падающих ракет
+    for (const m of missiles) {
+      m.y += m.speed;
+      m.x -= m.speed * 0.4;
+      if (m.y > floorY) {
+        m.y = -50;
+        m.x = p.x + (Math.random() * 600 - 300);
+      }
+    }
+
+    // Авто-срабатывание если подошел вплотную к статуе
+    if (p.x > statue.x - 30 && p.x < statue.x + 50 && p.y < floorY - 80) {
+      clearInterval(tInt);
+      window.location.href = "moon.html";
     }
   }
 
@@ -82,35 +133,57 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const camX = Math.max(0, p.x - canvas.width * 0.35);
 
+    // Небо перед взрывом
+    ctx.fillStyle = '#2b070f'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Прорисованные падающие ракеты с огненным шлейфом
+    for (const m of missiles) {
+      const sx = m.x - camX;
+      ctx.strokeStyle = '#ff9900';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(sx, m.y);
+      ctx.lineTo(sx + m.len * 0.4, m.y - m.len);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(sx - 2, m.y, 4, 4);
+    }
+
     // Дорога
-    ctx.fillStyle = '#22080c'; ctx.fillRect(0 - camX, floorY, 1000, 40);
+    ctx.fillStyle = '#1c070b'; ctx.fillRect(0 - camX, floorY, 1100, 40);
 
-    // Крыши
-    ctx.fillStyle = '#38141d'; ctx.fillRect(400 - camX, floorY - 50, 100, 50);
-    ctx.fillStyle = '#4f1a26'; ctx.fillRect(580 - camX, floorY - 100, 120, 100);
+    // Здание Китай-города
+    ctx.fillStyle = '#3b1219'; ctx.fillRect(540 - camX, floorY - 90, 180, 90);
 
-    // СТАТУЯ 9MICE (ПАСХАЛКА)
-    ctx.fillStyle = '#80d8ff'; ctx.fillRect(630 - camX, floorY - 145, 25, 45);
-    ctx.fillStyle = '#ff4081'; ctx.font = 'bold 9px monospace';
-    ctx.fillText("🗿 9MICE", 615 - camX, floorY - 155);
+    // СТАТУЯ 9MICE (СВЕТИТСЯ, НАЖИМАЙ ПАЛЬЦЕМ!)
+    ctx.fillStyle = '#80d8ff';
+    ctx.fillRect(statue.x - camX, statue.y, statue.w, statue.h);
+    ctx.fillStyle = '#ff007f';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText("🗿 9MICE", statue.x - camX - 8, statue.y - 12);
+    ctx.fillStyle = '#fff';
+    ctx.font = '9px sans-serif';
+    ctx.fillText("(ТАПНИ СЮДА)", statue.x - camX - 16, statue.y - 2);
 
-    // Игрок
-    ctx.fillStyle = '#111'; ctx.fillRect(p.x - camX, p.y, p.w, p.h);
+    // Игрок в футболке PAINBOY
+    ctx.save();
+    ctx.translate(p.x - camX + p.w / 2, p.y + p.h / 2);
+    if (p.facing < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = '#111'; ctx.fillRect(-7, -25, 14, 12);
+    ctx.fillStyle = '#ffd1b3'; ctx.fillRect(-6, -18, 12, 9);
+    ctx.fillStyle = '#121318'; ctx.fillRect(-11, -9, 22, 22);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-2, 0, 4, 4);
+    ctx.fillStyle = '#1e2438'; ctx.fillRect(-9, 13, 7, 12); ctx.fillRect(2, 13, 7, 12);
+    ctx.restore();
 
     requestAnimationFrame(() => { update(); render(); });
   }
 
-  document.getElementById('bL').ontouchstart = () => keys.l = true; document.getElementById('bL').ontouchend = () => keys.l = false;
-  document.getElementById('bR').ontouchstart = () => keys.r = true; document.getElementById('bR').ontouchend = () => keys.r = false;
-  document.getElementById('bJ').ontouchstart = () => { if (p.grounded) { p.vy = -10.5; p.grounded = false; } };
-
-  // Касание статуи 9mice
-  document.getElementById('bE').onclick = () => {
-    if (p.x > 580 && p.x < 680 && p.y < floorY - 60) {
-      clearInterval(tInt);
-      window.location.href = "moon.html";
-    }
-  };
+  const bL = document.getElementById('bL'), bR = document.getElementById('bR'), bJ = document.getElementById('bJ');
+  bL.ontouchstart = () => keys.l = true; bL.ontouchend = () => keys.l = false;
+  bR.ontouchstart = () => keys.r = true; bR.ontouchend = () => keys.r = false;
+  bJ.ontouchstart = () => { if (p.grounded) { p.vy = -11; p.grounded = false; } };
 
   requestAnimationFrame(() => { update(); render(); });
 </script>

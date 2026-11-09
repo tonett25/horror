@@ -3,28 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Поезд 2+5 // Часть 1</title>
+  <title>Поезд 2+5 // Босс Антон Исмагилов</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
     body { background: #000; color: #ccc; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
     #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 20; font-size: 11px; font-weight: 700; background: rgba(10,12,20,0.85); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
     #msg { position: absolute; top: 52px; left: 10px; right: 10px; background: rgba(120,0,0,0.85); color: #fff; padding: 8px; font-size: 12px; border-radius: 8px; z-index: 25; text-align: center; display: none; }
     canvas { flex: 1; width: 100%; display: block; background: #0a0c14; }
+    #screamer { position: absolute; inset: 0; background: #000; display: none; justify-content: center; align-items: center; z-index: 100; pointer-events: none; }
+    #screamerFace { font-size: 120px; filter: drop-shadow(0 0 30px #ff0000); animation: scShake 0.1s infinite; }
+    @keyframes scShake { 0% { transform: scale(1.1) translate(-5px, 5px); } 50% { transform: scale(1.3) translate(5px, -5px); } 100% { transform: scale(1.1) translate(0, 0); } }
     #controls { height: 130px; background: #080a12; border-top: 1px solid #1a2035; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
-    .btn { width: 56px; height: 56px; border-radius: 16px; background: #161b2c; border: 1px solid #2d3758; color: #fff; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .btn { width: 56px; height: 56px; border-radius: 16px; background: #161b2c; border: 1px solid #2d3758; color: #fff; font-size: 20px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
     .btn:active { background: #2f395c; transform: scale(0.92); }
     .btn-act { width: 56px; height: 56px; border-radius: 16px; background: #1a1e2f; border: 1px solid #3d476e; color: #fff; font-size: 11px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .btn-shoot { width: 64px; height: 64px; border-radius: 50%; background: #b30000; border: 2px solid #ff4d4d; color: #fff; font-size: 12px; font-weight: 900; }
+    .btn-shoot { width: 68px; height: 68px; border-radius: 50%; background: #b30000; border: 2px solid #ff4d4d; color: #fff; font-size: 11px; font-weight: 900; box-shadow: 0 0 15px rgba(255,0,0,0.5); }
   </style>
 </head>
 <body>
 
 <div id="hud">
-  <span style="color:#ff3333;">● REC ВАГОН 2+5</span>
+  <span style="color:#ff3333;">● ВАГОН 2+5 // БОСС</span>
   <span style="color:#ff6688;">♥ HP: <b id="hpVal">100</b></span>
-  <span style="color:#f6c445;">🔫 ПМ: <b id="ammoVal">8</b></span>
+  <span style="color:#f6c445;">🥖 БАТОНЫ: <b>∞</b></span>
 </div>
 <div id="msg"></div>
+
+<div id="screamer"><div id="screamerFace">👹</div></div>
 
 <canvas id="c"></canvas>
 
@@ -36,7 +41,7 @@
   <div style="display:flex; gap:10px; align-items:center;">
     <button class="btn-act" id="bJ"><span>▲</span><span>ПРЫЖОК</span></button>
     <button class="btn-act" id="bE" style="color:#f6c445;"><span>🚪</span><span>ВЫХОД</span></button>
-    <button class="btn-shoot" id="bS">ОГОНЬ</button>
+    <button class="btn-shoot" id="bS">ОГОНЬ (∞)</button>
   </div>
 </div>
 
@@ -48,67 +53,93 @@
   resize();
 
   const floorY = canvas.height - 40;
-  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, hp: 100, ammo: 8, facing: 1, grounded: false };
+  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, hp: 100, facing: 1, grounded: false };
   const keys = { l: false, r: false };
 
-  const enemies = [
-    { x: 300, y: floorY - 50, w: 24, h: 50, hp: 2, dir: -1, minX: 200, maxX: 450, alive: true, name: "Даня Гладин" },
-    { x: 620, y: floorY - 50, w: 24, h: 50, hp: 2, dir: -1, minX: 520, maxX: 750, alive: true, name: "Даня Гладин" }
-  ];
+  // БОСС АНТОН ИСМАГИЛОВ
+  const boss = {
+    x: 480, y: floorY - 75, w: 45, h: 75, hp: 15, maxHp: 15, dir: -1, minX: 300, maxX: 720, alive: true, name: "БОСС: АНТОН ИСМАГИЛОВ"
+  };
+
+  let actx = null;
+  function getAudio() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    return actx;
+  }
+  function playScream() {
+    try {
+      const c = getAudio();
+      const o = c.createOscillator(); const g = c.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(600, c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.4);
+      g.gain.setValueAtTime(0.7, c.currentTime); g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.4);
+      o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.45);
+    } catch(e){}
+  }
+
+  function triggerScreamer() {
+    playScream();
+    const sc = document.getElementById('screamer');
+    sc.style.display = 'flex';
+    setTimeout(() => sc.style.display = 'none', 350);
+  }
 
   function show(txt) {
     const m = document.getElementById('msg');
     m.innerText = txt; m.style.display = 'block';
     setTimeout(() => m.style.display = 'none', 2500);
   }
-  show("Поезд встал. Даня Гладин рыщет по коридору. Доберись до выхода из вагона!");
+  show("Игроки просили — получите: БОСС АНТОН ИСМАГИЛОВ В ВАГОНЕ! Стреляй бесконечными батонами!");
 
   function shoot() {
-    if (p.ammo <= 0) { show("Патроны кончились!"); return; }
-    p.ammo--;
-    document.getElementById('ammoVal').innerText = p.ammo;
-    for (const e of enemies) {
-      if (!e.alive) continue;
-      const ahead = (p.facing > 0 && e.x > p.x) || (p.facing < 0 && e.x < p.x);
-      if (ahead && Math.abs(e.x - p.x) < 260) {
-        e.hp--;
-        show("Попадание в Даню Гладина!");
-        if (e.hp <= 0) { e.alive = false; show("Даня Гладин повержен!"); }
-        return;
+    getAudio();
+    if (boss.alive && Math.abs(boss.x - p.x) < 320) {
+      boss.hp--;
+      if (Math.random() < 0.35) triggerScreamer();
+      show(`Урон Антону Исмагилову! Осталось: ${boss.hp}/${boss.maxHp}`);
+      if (boss.hp <= 0) {
+        boss.alive = false;
+        triggerScreamer();
+        show("АНТОН ИСМАГИЛОВ УНИЧТОЖЕН! ДВЕРЬ В КОНЦЕ ВАГОНА ОТКРЫТА!");
       }
+    } else {
+      show("Батон улетел в стену вагона!");
     }
-    show("Выстрел в темноту вагона!");
   }
 
   function interact() {
-    // Дверь в конце вагона (x = 840)
     if (p.x >= 780) {
-      window.location.href = "vologda.html";
+      if (boss.alive) {
+        triggerScreamer();
+        show("АНТОН ИСМАГИЛОВ БЛОКИРУЕТ ВЫХОД! ДОБЕЙ ЕГО!");
+      } else {
+        window.location.href = "vologda.html";
+      }
     } else {
-      show("Дверь выхода в конце вагона справа!");
+      show("Выход на перрон Вологды в конце вагона!");
     }
   }
 
   function update() {
-    p.vx = keys.l ? -3.5 : (keys.r ? 3.5 : 0);
+    p.vx = keys.l ? -3.8 : (keys.r ? 3.8 : 0);
     if (keys.l) p.facing = -1;
     if (keys.r) p.facing = 1;
 
-    p.vy += 0.5;
+    p.vy += 0.52;
     p.x += p.vx;
     p.y += p.vy;
 
     if (p.y >= floorY - p.h) { p.y = floorY - p.h; p.vy = 0; p.grounded = true; }
     if (p.x < 10) p.x = 10;
 
-    for (const e of enemies) {
-      if (!e.alive) continue;
-      e.x += e.dir * 1.3;
-      if (e.x <= e.minX || e.x >= e.maxX) e.dir *= -1;
-      if (Math.abs(p.x - e.x) < 25 && Math.abs(p.y - e.y) < 35) {
-        p.hp -= 0.6;
+    if (boss.alive) {
+      boss.x += boss.dir * 1.6;
+      if (boss.x <= boss.minX || boss.x >= boss.maxX) boss.dir *= -1;
+      if (Math.abs(p.x - boss.x) < 35 && Math.abs(p.y - boss.y) < 55) {
+        p.hp -= 0.8;
         document.getElementById('hpVal').innerText = Math.max(0, Math.ceil(p.hp));
-        if (p.hp <= 0) { alert("Вас растерзал Даня Гладин!"); location.reload(); }
+        if (Math.random() < 0.1) triggerScreamer();
+        if (p.hp <= 0) { triggerScreamer(); alert("Антон Исмагилов поглотил тебя!"); location.reload(); }
       }
     }
   }
@@ -117,57 +148,48 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const camX = Math.max(0, p.x - canvas.width * 0.35);
 
-    // Пол вагона и ковер
-    ctx.fillStyle = '#801824';
-    ctx.fillRect(0 - camX, floorY, 1000, 40);
-    ctx.fillStyle = '#f6c445';
-    ctx.fillRect(0 - camX, floorY, 1000, 3);
+    // Пол
+    ctx.fillStyle = '#6b111c'; ctx.fillRect(0 - camX, floorY, 1000, 40);
+    ctx.fillStyle = '#f6c445'; ctx.fillRect(0 - camX, floorY, 1000, 3);
 
-    // Полки плацкарта
-    ctx.fillStyle = '#1c2847';
-    for (let bx = 160; bx <= 660; bx += 220) {
-      ctx.fillRect(bx - camX, floorY - 55, 100, 12);
-      ctx.fillStyle = '#f0f3fa';
-      ctx.fillRect(bx - camX, floorY - 58, 100, 3);
-      ctx.fillStyle = '#1c2847';
-    }
-
-    // Выходная дверь на перрон Вологды
-    ctx.fillStyle = '#05b072';
+    // Дверь
+    ctx.fillStyle = boss.alive ? '#7f1d1d' : '#05b072';
     ctx.fillRect(840 - camX, floorY - 80, 45, 80);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 11px monospace';
-    ctx.fillText("ВЫХОД В ВОЛОГДУ", 800 - camX, floorY - 90);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
+    ctx.fillText(boss.alive ? "ЗАКРЫТО БОССОМ" : "ВЫХОД В ВОЛОГДУ", 790 - camX, floorY - 90);
 
-    // Враги Даня Гладин
-    for (const e of enemies) {
-      if (!e.alive) continue;
-      ctx.fillStyle = '#110505';
-      ctx.fillRect(e.x - camX, e.y, e.w, e.h);
-      ctx.fillStyle = '#ff1a1a';
-      ctx.fillRect(e.x - camX + 4, e.y + 12, 4, 4);
-      ctx.fillRect(e.x - camX + 14, e.y + 12, 4, 4);
-      ctx.fillStyle = '#ff6666';
-      ctx.font = 'bold 9px monospace';
-      ctx.fillText(e.name, e.x - camX - 10, e.y - 6);
+    // Отрисовка Босса Антона Исмагилова
+    if (boss.alive) {
+      ctx.fillStyle = '#2b0000';
+      ctx.fillRect(boss.x - camX, boss.y, boss.w, boss.h);
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(boss.x - camX + 8, boss.y + 15, 8, 8);
+      ctx.fillRect(boss.x - camX + 28, boss.y + 15, 8, 8);
+      ctx.fillRect(boss.x - camX + 10, boss.y + 40, 25, 12);
+
+      // Полоска здоровья босса
+      ctx.fillStyle = '#111'; ctx.fillRect(boss.x - camX - 10, boss.y - 20, 65, 8);
+      ctx.fillStyle = '#ff1a1a'; ctx.fillRect(boss.x - camX - 10, boss.y - 20, (boss.hp / boss.maxHp) * 65, 8);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 9px monospace';
+      ctx.fillText(boss.name, boss.x - camX - 30, boss.y - 26);
     }
 
-    // ГГ в футболке PAINBOY
+    // Игрок (нормальный человек в мерче PAINBOY)
     ctx.save();
     ctx.translate(p.x - camX + p.w / 2, p.y + p.h / 2);
     if (p.facing < 0) ctx.scale(-1, 1);
-    ctx.fillStyle = '#111'; ctx.fillRect(-7, -25, 14, 12); // голова
-    ctx.fillStyle = '#ffd1b3'; ctx.fillRect(-6, -18, 12, 9); // лицо
-    ctx.fillStyle = '#121318'; ctx.fillRect(-11, -9, 22, 22); // футболка PAINBOY
-    ctx.fillStyle = '#fff'; ctx.fillRect(-2, 0, 4, 4); // принт мерча
-    ctx.fillStyle = '#1e2438'; ctx.fillRect(-9, 13, 7, 12); ctx.fillRect(2, 13, 7, 12); // ноги
-    ctx.fillStyle = '#444'; ctx.fillRect(8, -1, 9, 4); // пистолет
+    ctx.fillStyle = '#111'; ctx.fillRect(-7, -25, 14, 12);
+    ctx.fillStyle = '#ffd1b3'; ctx.fillRect(-6, -18, 12, 9);
+    ctx.fillStyle = '#121318'; ctx.fillRect(-11, -9, 22, 22);
+    // Принт заяц
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-2, 0, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1e2438'; ctx.fillRect(-9, 13, 7, 12); ctx.fillRect(2, 13, 7, 12);
+    ctx.fillStyle = '#d97706'; ctx.fillRect(8, 0, 14, 5); // Батон в руке!
     ctx.restore();
 
     requestAnimationFrame(() => { update(); render(); });
   }
 
-  // Кнопки
   const bL = document.getElementById('bL'), bR = document.getElementById('bR'), bJ = document.getElementById('bJ');
   bL.ontouchstart = () => keys.l = true; bL.ontouchend = () => keys.l = false;
   bR.ontouchstart = () => keys.r = true; bR.ontouchend = () => keys.r = false;

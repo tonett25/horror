@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Аэропорт Вологда</title>
+  <title>Аэропорт Вологда ➔ Самолёт</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body { background: #000; color: #ccc; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
@@ -18,7 +18,7 @@
 
 <div id="hud">
   <span style="color:#60a5fa;">● АЭРОПОРТ ВОЛОГДА</span>
-  <span style="color:#ff4d6d;">✈️ РЕЙС В МОСКВУ</span>
+  <span style="color:#ff4d6d;">✈️ ВЗЛЁТ В МОСКВУ</span>
 </div>
 
 <canvas id="c"></canvas>
@@ -42,13 +42,16 @@
   resize();
 
   const floorY = canvas.height - 40;
-  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, grounded: false };
+  const p = { x: 40, y: floorY - 50, w: 26, h: 50, vx: 0, vy: 0, facing: 1, grounded: false };
   const keys = { l: false, r: false };
 
   function update() {
     p.vx = keys.l ? -3.5 : (keys.r ? 3.5 : 0);
+    if (keys.l) p.facing = -1;
+    if (keys.r) p.facing = 1;
     p.vy += 0.5; p.x += p.vx; p.y += p.vy;
     if (p.y >= floorY - p.h) { p.y = floorY - p.h; p.vy = 0; p.grounded = true; }
+    if (p.x < 10) p.x = 10;
   }
 
   function render() {
@@ -61,12 +64,21 @@
     for (let lx = 60; lx < 1100; lx += 90) ctx.fillRect(lx - camX, floorY + 18, 40, 4);
 
     // Самолёт
-    ctx.fillStyle = '#3b82f6'; ctx.fillRect(800 - camX, floorY - 90, 220, 90);
+    ctx.fillStyle = '#2563eb'; ctx.fillRect(750 - camX, floorY - 90, 240, 90);
+    ctx.fillStyle = '#1d4ed8'; ctx.fillRect(990 - camX, floorY - 130, 40, 130); // хвост
     ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace';
-    ctx.fillText("РЕЙС НА КИТАЙ-ГОРОД", 830 - camX, floorY - 50);
+    ctx.fillText("РЕЙС НА КИТАЙ-ГОРОД", 780 - camX, floorY - 45);
 
-    // Игрок
-    ctx.fillStyle = '#111'; ctx.fillRect(p.x - camX, p.y, p.w, p.h);
+    // Игрок в PAINBOY
+    ctx.save();
+    ctx.translate(p.x - camX + p.w / 2, p.y + p.h / 2);
+    if (p.facing < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = '#111'; ctx.fillRect(-7, -25, 14, 12);
+    ctx.fillStyle = '#ffd1b3'; ctx.fillRect(-6, -18, 12, 9);
+    ctx.fillStyle = '#121318'; ctx.fillRect(-11, -9, 22, 22);
+    ctx.fillStyle = '#fff'; ctx.fillRect(-2, 0, 4, 4);
+    ctx.fillStyle = '#1e2438'; ctx.fillRect(-9, 13, 7, 12); ctx.fillRect(2, 13, 7, 12);
+    ctx.restore();
 
     requestAnimationFrame(() => { update(); render(); });
   }
@@ -75,7 +87,7 @@
   document.getElementById('bR').ontouchstart = () => keys.r = true; document.getElementById('bR').ontouchend = () => keys.r = false;
   document.getElementById('bJ').ontouchstart = () => { if (p.grounded) { p.vy = -10.5; p.grounded = false; } };
   document.getElementById('bE').onclick = () => {
-    if (p.x >= 750) window.location.href = "moscow.html";
+    if (p.x >= 720) window.location.href = "moscow.html";
   };
 
   requestAnimationFrame(() => { update(); render(); });
