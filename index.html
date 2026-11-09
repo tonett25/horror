@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ПОЕЗД 2+5: СМЕНА В ДАНИЛОВЕ // VHS INDIE HORROR</title>
+  <style>
+    :root {
+      --blood: #8a0303;
+      --blood-bright: #e60000;
+      --bg: #050608;
+      --vhs-green: #25ff68;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg);
+      color: #ccc;
+      font-family: "Courier New", Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #gameBox {
+      position: relative;
+      width: 100vw;
+      max-width: 440px;
+      height: 100vh;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Screen viewport */
+    #viewport {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      background: #020202;
+      overflow: hidden;
+    }
+
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* VHS Filters */
+    .vhs-scanlines {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.45) 50%), 
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
+      background-size: 100% 3px, 4px 100%;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .vhs-glitch {
+      position: absolute;
+      inset: 0;
+      box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      z-index: 21;
+    }
+
+    .blood-splatter {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(138, 3, 3, 0.35) 0%, transparent 40%),
+                  radial-gradient(circle at 10% 85%, rgba(138, 3, 3, 0.45) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 22;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+
+    /* HUD Overlay */
+    .hud {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 4px #000;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .rec-badge {
+      color: var(--blood-bright);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.2; }
+    }
+
+    .status-bars {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      z-index: 30;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .bar-pill {
+      background: rgba(10, 10, 15, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* Subtitles / Text Log */
+    #subtitleBox {
+      position: absolute;
+      top: 45px;
+      left: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.75);
+      border-left: 3px solid var(--blood-bright);
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #ffcccc;
+      z-index: 35;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      line-height: 1.35;
+      pointer-events: none;
+    }
+
+    /* Muzzle Flash & Screen Shakes */
+    #flashOverlay {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* Touch Controls */
+    .controls-panel {
+      height: 155px;
+      background: #090a0f;
+      border-top: 2px solid #1c202a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 50;
+    }
+
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(2, 44px);
+      gap: 6px;
+    }
+
+    .btn-touch {
+      background: #141620;
+      border: 1px solid #2e3448;
+      border-radius: 8px;
+      color: #9aa4be;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .btn-touch:active, .btn-touch.active {
+      background: #282e42;
+      color: #fff;
+      transform: scale(0.95);
+    }
+
+    .action-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-action {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      background: #181922;
+      border: 1px solid #3a3e55;
+      color: #eee;
+      font-size: 11px;
+      font-weight: bold;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .btn-shoot {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #a10000 0%, #4a0000 100%);
+      border: 2px solid #ff3b3b;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+
+    .btn-shoot:active {
+      transform: scale(0.92);
+      background: #ff1a1a;
+    }
+
+    /* Modal / Jumpscare / Start Screens */
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 100;
+    }
+
+    .screen-title {
+      font-size: 22px;
+      color: var(--blood-bright);
+      margin-bottom: 12px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(230, 0, 0, 0.8);
+    }
+
+    .screen-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #bbb;
+      margin-bottom: 24px;
+    }
+
+    .start-btn {
+      background: #180000;
+      color: #ff3333;
+      border: 1px solid #ff3333;
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+
+    .start-btn:active {
+      background: #ff3333;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+
+<div id="gameBox">
+  <!-- Viewport -->
+  <div id="viewport">
+    <canvas id="canvas3d"></canvas>
+    
+    <div class="vhs-scanlines"></div>
+    <div class="vhs-glitch"></div>
+    <div class="blood-splatter" id="bloodSplatter"></div>
+    <div id="flashOverlay"></div>
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="rec-badge">● REC 03:26:04</div>
+      <div style="color: #8899aa;">ПОЕЗД 2+5 // ПЕРЕГОН ДАНИЛОВ</div>
+    </div>
+
+    <!-- Subtitle log -->
+    <div id="subtitleBox"></div>
+
+    <!-- Status -->
+    <div class="status-bars">
+      <div class="bar-pill" style="color: #ff4444;">
+        <span>♥ HP:</span> <span id="hpVal">100%</span>
+      </div>
+      <div class="bar-pill" style="color: #eedd66;">
+        <span>🔦 СВЕТ:</span> <span id="lightVal">100%</span>
+      </div>
+      <div class="bar-pill" style="color: #66ccff;">
+        <span>🔫 ПМ:</span> <span id="ammoVal">6/6</span>
+      </div>
+    </div>
+
+    <!-- Start / End Screens -->
+    <div class="screen-overlay" id="startScreen">
+      <div class="screen-title">СМЕНА В ДАНИЛОВЕ</div>
+      <div class="screen-desc">
+        Глухая ночь. Поезд 2+5 застрял в лесу на перегоне.<br><br>
+        Свет погас. Все пассажиры исчезли, оставив кровавые следы. В конце вагона слышны дикие крики дяди Толи и лязг зубов.<br><br>
+        <b>НАУШНИКИ ОБЯЗАТЕЛЬНЫ.</b>
+      </div>
+      <button class="start-btn" onclick="startGame()">ВОЙТИ В ВАГОН</button>
+    </div>
+
+    <div class="screen-overlay" id="endScreen" style="display: none;">
+      <div class="screen-title" id="endTitle">ВЫ ЖИВЫ</div>
+      <div class="screen-desc" id="endDesc"></div>
+      <button class="start-btn" onclick="location.reload()">ПОВТОРИТЬ</button>
+    </div>
+  </div>
+
+  <!-- Touch Controls -->
+  <div class="controls-panel">
+    <div class="dpad-grid">
+      <div></div>
+      <button class="btn-touch" id="btnFwd">▲</button>
+      <div></div>
+      <button class="btn-touch" id="btnTurnL">◀</button>
+      <button class="btn-touch" id="btnBack">▼</button>
+      <button class="btn-touch" id="btnTurnR">▶</button>
+    </div>
+
+    <div class="action-group">
+      <button class="btn-action" id="btnLight">
+        <span>🔦</span>
+        <span>СВЕТ</span>
+      </button>
+      <button class="btn-action" id="btnAction">
+        <span>✋</span>
+        <span>ОБЫСК</span>
+      </button>
+      <button class="btn-shoot" id="btnShoot">
+        ВЫСТРЕЛ
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas3d');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = 320;
+    canvas.height = 240;
+  }
+  resize();
+
+  // Raycaster Map: 1=Стена, 2=Кровавая стена, 3=Дверь купе, 4=Окно в темный лес
+  const mapW = 8;
+  const mapH = 24;
+  const map = [
+    1,1,1,1,1,1,1,1,
+    1,0,0,0,0,0,3,1, // тамбур / старт
+    1,0,1,0,1,0,0,1,
+    1,0,0,0,0,0,2,1, // кровь на стене
+    1,0,1,0,1,0,0,1,
+    1,0,0,0,0,0,4,1,
+    1,0,1,0,1,0,0,1,
+    1,2,0,0,0,0,0,1, // место дяди Толи
+    1,0,1,0,1,0,2,1,
+    1,0,0,0,0,0,0,1,
+    1,4,1,0,1,0,0,1,
+    1,0,0,0,0,0,3,1, // служебное купе Галины Фортуновны
+    1,0,1,0,1,0,0,1,
+    1,0,0,0,0,0,2,1,
+    1,0,1,0,1,0,0,1,
+    1,2,0,0,0,0,4,1,
+    1,0,1,0,1,0,0,1,
+    1,0,0,0,0,0,2,1,
+    1,0,1,0,1,0,0,1,
+    1,0,0,0,0,0,0,1,
+    1,4,1,0,1,0,0,1,
+    1,0,0,0,0,0,3,1, // выход / локомотив
+    1,2,2,0,2,2,2,1, // логово твари
+    1,1,1,1,1,1,1,1
+  ];
+
+  // Player state
+  const player = {
+    x: 3.5,
+    y: 1.5,
+    rot: Math.PI / 2, // смотрит вперед вдоль вагона
+    fov: Math.PI / 3,
+    hp: 100,
+    ammo: 6,
+    flashlight: true,
+    battery: 100,
+    hasKey: false
+  };
+
+  // Monsters (Вытянутые твари с разорванными челюстями)
+  let monsters = [
+    { x: 3.5, y: 7.5, hp: 2, alive: true, aggro: false, speed: 0.03, type: 'tolya' },
+    { x: 4.0, y: 14.5, hp: 2, alive: true, aggro: false, speed: 0.035, type: 'stalker' },
+    { x: 3.5, y: 21.5, hp: 5, alive: true, aggro: false, speed: 0.04, type: 'boss' }
+  ];
+
+  // Audio Engine: Procedural Drones, Screams & Gunshots
+  let actx = null;
+  let droneOsc = null;
+  let heartbeatInterval = null;
+
+  function initAudio() {
+    if (actx) return;
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Dark Drone Synthesizer
+    droneOsc = actx.createOscillator();
+    const droneGain = actx.createGain();
+    const droneFilter = actx.createBiquadFilter();
+
+    droneOsc.type = 'sawtooth';
+    droneOsc.frequency.setValueAtTime(45, actx.currentTime); // гул поезда
+
+    droneFilter.type = 'lowpass';
+    droneFilter.frequency.setValueAtTime(140, actx.currentTime);
+
+    droneGain.gain.setValueAtTime(0.2, actx.currentTime);
+
+    droneOsc.connect(droneFilter);
+    droneFilter.connect(droneGain);
+    droneGain.connect(actx.destination);
+    droneOsc.start();
+
+    // Сердцебиение
+    heartbeatInterval = setInterval(() => {
+      if (player.hp < 60 || isMonsterNear()) {
+        playHeartbeat();
+      }
+    }, 800);
+  }
+
+  function playHeartbeat() {
+    if (!actx) return;
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    osc.frequency.setValueAtTime(65, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, actx.currentTime + 0.15);
+    g.gain.setValueAtTime(0.35, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.15);
+    osc.connect(g);
+    g.connect(actx.destination);
+    osc.start();
+    osc.stop(actx.currentTime + 0.16);
+  }
+
+  // Звук выстрела с эхом в узком вагоне
+  function playGunshot() {
+    if (!actx) return;
+    // Шумовой всплеск
+    const bufSize = actx.sampleRate * 0.4;
+    const buf = actx.createBuffer(1, bufSize, actx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (actx.sampleRate * 0.06));
+    }
+    const noise = actx.createBufferSource();
+    noise.buffer = buf;
+
+    const filter = actx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1800, actx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(200, actx.currentTime + 0.3);
+
+    const gain = actx.createGain();
+    gain.gain.setValueAtTime(0.9, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.35);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(actx.destination);
+    noise.start();
+
+    // Низкочастотный пинок пороха
+    const sub = actx.createOscillator();
+    const subG = actx.createGain();
+    sub.frequency.setValueAtTime(150, actx.currentTime);
+    sub.frequency.exponentialRampToValueAtTime(35, actx.currentTime + 0.2);
+    subG.gain.setValueAtTime(0.8, actx.currentTime);
+    subG.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.2);
+    sub.connect(subG);
+    subG.connect(actx.destination);
+    sub.start();
+    sub.stop(actx.currentTime + 0.22);
+  }
+
+  // Дикий крик твари при приближении / уроне
+  function playMonsterScream(pitch = 300) {
+    if (!actx) return;
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(pitch, actx.currentTime);
+    osc.frequency.linearRampToValueAtTime(pitch * 2.2, actx.currentTime + 0.15);
+    osc.frequency.exponentialRampToValueAtTime(80, actx.currentTime + 0.6);
+
+    g.gain.setValueAtTime(0.45, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.6);
+
+    osc.connect(g);
+    g.connect(actx.destination);
+    osc.start();
+    osc.stop(actx.currentTime + 0.65);
+  }
+
+  function showSubtitle(txt, time = 3000) {
+    const el = document.getElementById('subtitleBox');
+    el.innerText = txt;
+    el.style.opacity = 1;
+    clearTimeout(el.subTimeout);
+    el.subTimeout = setTimeout(() => {
+      el.style.opacity = 0;
+    }, time);
+  }
+
+  function isMonsterNear() {
+    return monsters.some(m => m.alive && Math.hypot(m.x - player.x, m.y - player.y) < 4);
+  }
+
+  // Shoot Action
+  function shoot() {
+    if (player.ammo <= 0) {
+      showSubtitle("ЩЁЛК!.. Патроны кончились! Ищи патроны в купе!");
+      return;
+    }
+    player.ammo--;
+    document.getElementById('ammoVal').innerText = `${player.ammo}/6`;
+
+    // Вспышка и отдача
+    playGunshot();
+    const flash = document.getElementById('flashOverlay');
+    flash.style.opacity = 0.9;
+    setTimeout(() => { flash.style.opacity = 0; }, 60);
+
+    // Проверка попадания луча в монстра
+    let hit = false;
+    for (const m of monsters) {
+      if (!m.alive) continue;
+      const dx = m.x - player.x;
+      const dy = m.y - player.y;
+      const angleToMonster = Math.atan2(dy, dx);
+      let diff = angleToMonster - player.rot;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+
+      const dist = Math.hypot(dx, dy);
+      if (Math.abs(diff) < 0.25 && dist < 7) {
+        m.hp--;
+        m.aggro = true;
+        playMonsterScream(480);
+        showSubtitle("ПОПАДАНИЕ! Тварь брызжет черной кровью!");
+        hit = true;
+        if (m.hp <= 0) {
+          m.alive = false;
+          showSubtitle("Тварь упала и затихла в луже крови.");
+        }
+        break;
+      }
+    }
+    if (!hit) {
+      showSubtitle("Мимо! Пуля пробила деревянную перегородку!");
+    }
+  }
+
+  // Interact Action
+  function interact() {
+    const checkX = Math.floor(player.x + Math.cos(player.rot) * 0.9);
+    const checkY = Math.floor(player.y + Math.sin(player.rot) * 0.9);
+    const tile = map[checkY * mapW + checkX];
+
+    if (tile === 3) {
+      if (checkY === 11) { // купе Галины
+        if (!player.hasKey) {
+          player.hasKey = true;
+          player.ammo = Math.min(6, player.ammo + 4);
+          document.getElementById('ammoVal').innerText = `${player.ammo}/6`;
+          showSubtitle("Найдена записка Галины Фортуновны: «Оно залезло на крышу в Данилове... бегите к локомотиву!» +4 патрона и ТРЁХГРАННЫЙ КЛЮЧ.");
+        } else {
+          showSubtitle("Купе проводницы пусто. Кровь залила зеркало.");
+        }
+      } else if (checkY === 21) { // дверь в локомотив
+        if (player.hasKey) {
+          triggerGameEnd(true);
+        } else {
+          showSubtitle("Дверь заперта на трехгранный замок проводницы! Нужен ключ из купе Галины.");
+        }
+      } else {
+        showSubtitle("Купе забаррикадировано изнутри. Оттуда доносится скрежет зубов.");
+      }
+    } else if (tile === 2) {
+      showSubtitle("Стена исцарапана ногтями: «ДЯДЯ ТОЛЯ БОЛЬШЕ НЕ ЧЕЛОВЕК».");
+    } else {
+      showSubtitle("Ничего полезного, только холодная железная обшивка.");
+    }
+  }
+
+  // Input bindings
+  const keys = { fwd: false, back: false, left: false, right: false };
+
+  function bindBtn(id, onDown, onUp) {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); el.classList.add('active'); });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); el.classList.remove('active'); });
+    el.addEventListener('mousedown', () => { onDown(); el.classList.add('active'); });
+    el.addEventListener('mouseup', () => { onUp(); el.classList.remove('active'); });
+  }
+
+  bindBtn('btnFwd', () => keys.fwd = true, () => keys.fwd = false);
+  bindBtn('btnBack', () => keys.back = true, () => keys.back = false);
+  bindBtn('btnTurnL', () => keys.left = true, () => keys.left = false);
+  bindBtn('btnTurnR', () => keys.right = true, () => keys.right = false);
+
+  document.getElementById('btnShoot').onclick = shoot;
+  document.getElementById('btnAction').onclick = interact;
+  document.getElementById('btnLight').onclick = () => {
+    player.flashlight = !player.flashlight;
+    showSubtitle(player.flashlight ? "Фонарик включен." : "Фонарик выключен. Полная тьма.");
+  };
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.fwd = true;
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.back = true;
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+    if (e.code === 'Space') shoot();
+    if (e.code === 'KeyE') interact();
+    if (e.code === 'KeyF') player.flashlight = !player.flashlight;
+  });
+
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.fwd = false;
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.back = false;
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+  });
+
+  // Game Engine Update & Raycasting
+  function update() {
+    const moveSpeed = 0.045;
+    const rotSpeed = 0.04;
+
+    if (keys.left) player.rot -= rotSpeed;
+    if (keys.right) player.rot += rotSpeed;
+
+    if (keys.fwd) {
+      const nx = player.x + Math.cos(player.rot) * moveSpeed;
+      const ny = player.y + Math.sin(player.rot) * moveSpeed;
+      if (map[Math.floor(ny) * mapW + Math.floor(nx)] === 0) {
+        player.x = nx;
+        player.y = ny;
+      }
+    }
+    if (keys.back) {
+      const nx = player.x - Math.cos(player.rot) * moveSpeed;
+      const ny = player.y - Math.sin(player.rot) * moveSpeed;
+      if (map[Math.floor(ny) * mapW + Math.floor(nx)] === 0) {
+        player.x = nx;
+        player.y = ny;
+      }
+    }
+
+    // Батарейка фонарика
+    if (player.flashlight && player.battery > 0) {
+      player.battery -= 0.015;
+      document.getElementById('lightVal').innerText = `${Math.ceil(player.battery)}%`;
+      if (player.battery <= 0) {
+        player.flashlight = false;
+        showSubtitle("Фонарик сдох. Они чувствуют тебя в темноте...");
+      }
+    }
+
+    // Поведение тварей
+    for (const m of monsters) {
+      if (!m.alive) continue;
+      const dist = Math.hypot(m.x - player.x, m.y - player.y);
+
+      // Агр если близко или включен свет
+      if (dist < 5.5 && (player.flashlight || m.aggro || dist < 2.5)) {
+        if (!m.aggro) {
+          m.aggro = true;
+          playMonsterScream(260);
+          showSubtitle("ИЗ ТЕМНОТЫ РАЗДАЛСЯ ДИКИЙ ВОПЛЬ!");
+        }
+        // Движение к игроку
+        const angle = Math.atan2(player.y - m.y, player.x - m.x);
+        const mx = m.x + Math.cos(angle) * m.speed;
+        const my = m.y + Math.sin(angle) * m.speed;
+        if (map[Math.floor(my) * mapW + Math.floor(mx)] === 0) {
+          m.x = mx;
+          m.y = my;
+        }
+
+        // Атака игрока
+        if (dist < 0.7) {
+          player.hp -= 0.6;
+          document.getElementById('hpVal').innerText = `${Math.ceil(player.hp)}%`;
+          document.getElementById('bloodSplatter').style.opacity = (1 - player.hp / 100);
+          if (Math.random() < 0.05) playMonsterScream(180);
+          if (player.hp <= 0) {
+            triggerGameEnd(false);
+          }
+        }
+      }
+    }
+  }
+
+  function renderRaycasting() {
+    const numRays = canvas.width;
+    const halfFov = player.fov / 2;
+
+    // Пол и потолок
+    ctx.fillStyle = '#0a0505'; // потолок
+    ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+    ctx.fillStyle = '#140c0c'; // грязный пол
+    ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+    const zBuffer = [];
+
+    // Raycast Wall Slices
+    for (let r = 0; r < numRays; r++) {
+      const rayAngle = player.rot - halfFov + (r / numRays) * player.fov;
+      let dist = 0;
+      let hit = 0;
+      const sin = Math.sin(rayAngle);
+      const cos = Math.cos(rayAngle);
+
+      while (dist < 16) {
+        dist += 0.04;
+        const checkX = Math.floor(player.x + cos * dist);
+        const checkY = Math.floor(player.y + sin * dist);
+
+        if (checkX < 0 || checkX >= mapW || checkY < 0 || checkY >= mapH) {
+          hit = 1;
+          break;
+        }
+
+        const tile = map[checkY * mapW + checkX];
+        if (tile > 0) {
+          hit = tile;
+          break;
+        }
+      }
+
+      // Коррекция рыбьего глаза
+      const correctedDist = dist * Math.cos(rayAngle - player.rot);
+      zBuffer[r] = correctedDist;
+
+      const wallHeight = Math.min(canvas.height * 1.5, (canvas.height / correctedDist) * 1.2);
+      const wallTop = (canvas.height - wallHeight) / 2;
+
+      // Освещение фонарика (затухание с расстоянием)
+      let lightFactor = player.flashlight ? Math.max(0, 1 - (correctedDist / 8.5)) : Math.max(0, 0.25 - (correctedDist / 3));
+
+      // Цвет стены по типу
+      let rCol = 30, gCol = 30, bCol = 35;
+      if (hit === 2) { rCol = 140; gCol = 10; bCol = 10; } // кровь
+      if (hit === 3) { rCol = 50; gCol = 45; bCol = 30; }  // дерево двери
+      if (hit === 4) { rCol = 10; gCol = 20; bCol = 40; }  // стекло заснеженное
+
+      ctx.fillStyle = `rgb(${rCol * lightFactor}, ${gCol * lightFactor}, ${bCol * lightFactor})`;
+      ctx.fillRect(r, wallTop, 1, wallHeight);
+    }
+
+    // Отрисовка спрайтов монстров (от дальних к ближним)
+    const sortedMonsters = [...monsters]
+      .filter(m => m.alive)
+      .map(m => ({
+        ...m,
+        dist: Math.hypot(m.x - player.x, m.y - player.y),
+        angle: Math.atan2(m.y - player.y, m.x - player.x) - player.rot
+      }))
+      .sort((a, b) => b.dist - a.dist);
+
+    for (const m of sortedMonsters) {
+      let angle = m.angle;
+      while (angle < -Math.PI) angle += Math.PI * 2;
+      while (angle > Math.PI) angle -= Math.PI * 2;
+
+      if (Math.abs(angle) < player.fov) {
+        const screenX = (canvas.width / 2) + Math.tan(angle) * (canvas.width / (2 * Math.tan(halfFov)));
+        const spriteSize = Math.min(canvas.height * 2, (canvas.height / m.dist) * 1.1);
+        const topY = (canvas.height - spriteSize) / 2;
+
+        if (m.dist > 0.3 && screenX > -50 && screenX < canvas.width + 50 && m.dist < zBuffer[Math.floor(screenX)]) {
+          let light = player.flashlight ? Math.max(0.1, 1 - m.dist / 7) : 0.15;
+
+          // Жуткий силуэт с горящими красными глазами и разорванной пастью
+          ctx.save();
+          ctx.translate(screenX, topY + spriteSize / 2);
+
+          // Тело-тень
+          ctx.fillStyle = `rgba(${15 * light}, ${10 * light}, ${15 * light}, 0.95)`;
+          ctx.fillRect(-spriteSize * 0.2, -spriteSize * 0.45, spriteSize * 0.4, spriteSize * 0.9);
+
+          // Разорванная окровавленная челюсть
+          ctx.fillStyle = `rgba(${220 * light}, 0, 0, 0.9)`;
+          ctx.fillRect(-spriteSize * 0.1, spriteSize * 0.05, spriteSize * 0.2, spriteSize * 0.25);
+
+          // Горящие зрачки
+          ctx.fillStyle = '#ff0033';
+          ctx.fillRect(-spriteSize * 0.08, -spriteSize * 0.25, spriteSize * 0.05, spriteSize * 0.05);
+          ctx.fillRect(spriteSize * 0.03, -spriteSize * 0.25, spriteSize * 0.05, spriteSize * 0.05);
+
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  function gameLoop() {
+    update();
+    renderRaycasting();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function startGame() {
+    initAudio();
+    document.getElementById('startScreen').style.display = 'none';
+    showSubtitle("3:26 ночи. Поезд 2+5 застрял. Найди ключ в служебном купе и беги к локомотиву.");
+    requestAnimationFrame(gameLoop);
+  }
+
+  function triggerGameEnd(win) {
+    const end = document.getElementById('endScreen');
+    const title = document.getElementById('endTitle');
+    const desc = document.getElementById('endDesc');
+    end.style.display = 'flex';
+
+    if (win) {
+      title.innerText = "ВЫ ВЫЖИЛИ В ДАНИЛОВЕ";
+      title.style.color = "#25ff68";
+      desc.innerHTML = `
+        Вы провернули трехгранный ключ и заперли за собой дверь локомотива.<br><br>
+        Твари яростно били в бронированное стекло тамбура, но состав дернулся и на полной скорости понесся в темноту Москвы.<br><br>
+        <b>Поезд 2+5 прибывает на станцию назначения...</b>
+      `;
+    } else {
+      title.innerText = "ВЫ РАСТЕРЗАНЫ";
+      title.style.color = "#e60000";
+      desc.innerHTML = `
+        Тварь повалила вас на холодный пол плацкарта.<br><br>
+        Ваши крики заглушил вой даниловской метели. Ваш телефон остался лежать в луже крови на 25 полке...
+      `;
+    }
+  }
+</script>
+
+</body>
+</html>
